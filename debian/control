@@ -1,0 +1,10 @@
+Source: fast-dhcp
+Section: net
+Priority: optional
+Maintainer: Tom Siewert <tom@siewert.io>
+Build-Depends: debhelper (>=11)
+Standards-Version: 4.0.0
+
+Package: fast-dhcp
+Architecture: any
+Description: Blazing fast DHCP server for the Fast stack

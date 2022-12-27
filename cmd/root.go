@@ -1,5 +1,4 @@
-The MIT License (MIT)
-
+/*
 Copyright © 2022 Tom Siewert <tom@siewert.io>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,3 +18,27 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+*/
+package cmd
+
+import (
+	"github.com/spf13/cobra"
+)
+
+var rootCmd = &cobra.Command{
+	Use:   "fast-dhcp",
+	Short: "A blazing fast DHCP server for PVE nodes using the Fast Stack.",
+}
+
+func Execute() error {
+	return rootCmd.Execute()
+}
+
+var (
+	version bool
+	cfgFile string
+)
+
+func init() {
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "/etc/fast-stack/dhcp.json")
+}

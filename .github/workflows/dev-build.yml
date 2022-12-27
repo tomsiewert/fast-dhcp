@@ -1,0 +1,40 @@
+---
+name: Dev Build
+on:
+  pull_request: []
+  push:
+    tags-ignore: ['*']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19.x
+
+      - name: Setup Task
+        uses: arduino/setup-task@v1
+
+      - name: Setup changelogger
+        run: curl -Ls https://git.io/changelogger.sh | sh
+
+      - name: Add changelogger bin to path
+        run: echo "$(pwd)/bin" >> $GITHUB_PATH
+
+      - name: Run build task
+        run: task build:dev
+
+      - name: Build Debian package
+        uses: jtdor/build-deb-action@v1
+        with:
+          buildpackage-opts: -us -uc
+
+      - name: Rename artifact
+        run: mv ci-build/fast-dhcp ci-build/fast-dhcp_amd64 && mv ../*.deb .

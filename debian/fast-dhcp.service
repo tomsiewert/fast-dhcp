@@ -1,0 +1,32 @@
+[Unit]
+Description=Blazing fast DHCP server
+After=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+
+ExecStart=/usr/bin/fast-dhcp serve
+TimeoutStopSec=15
+
+IPAccounting=yes
+
+NoNewPrivileges=yes
+Restart=on-failure
+RestartSec=10s
+LimitNOFile=16384
+
+DevicePolicy=auto
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+
+ProtectSystem=strict
+
+MemoryAccounting=yes
+
+MemoryMax=1G
+MemoryHigh=256M
+
+[Install]
+WantedBy=multi-user.target
