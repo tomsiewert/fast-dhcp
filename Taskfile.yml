@@ -1,0 +1,74 @@
+---
+version: '2'
+output: 'prefixed'
+
+vars:
+  BINARY_NAME: 'fast-dhcp'
+  DEBIAN_NAME: 'fast-dhcp'
+  DUMMY_DEB_CHANGELOG: true
+  PATH: 'github.com/tomsiewert/fast-dhcp'
+  DATE:
+    sh: 'git show -s HEAD --format=%aI || date -Iseconds'
+  GOLANG_BUILD_ARGS: '-X {{.PATH}}/cmd.BuildDate={{.DATE}} -X {{.PATH}}/cmd.BuildVersion={{.BUILD_VERSION}}'
+  CGO_ENABLED: 0
+  BUILD_VERSION:
+    sh: git describe --tags || git describe --always
+
+tasks:
+  build:
+    desc: Build process
+    cmds:
+      - task: clean
+      - task: bin
+      - task: test
+  build:dev:
+    desc: Build dev release
+    cmds:
+      - task: clean
+      - task: version:experimental
+      - task: bin
+  bin:
+    desc: Build fast-dhcp binary
+    cmds:
+      - go build -a -ldflags "{{.GOLANG_BUILD_ARGS}} -extldflags '-static'" -o ci-build/{{.BINARY_NAME}}
+  test:
+    desc: Run go unit tests
+    cmds:
+      - mkdir -p coverage
+      - go test -run "^Test[^_]" -v ./... -coverprofile=coverage/unittest_coverage.out -covermode=atomic
+  version:experimental:
+    desc: Create experimental release
+    vars:
+      version:
+        sh: "git describe --always | sed -e \"s/^v//\""
+      prefix:
+        sh: '[ "$(git tag)" == "" ] && echo -n 0.0.1-1- || true'
+      commit_date:
+        sh: 'date --date="$(git show -s HEAD --format=%aI)" +"%a, %d %b %Y %R:%S %z"'
+    cmds:
+      - DEBIAN_NAME={{.DEBIAN_NAME}} changelogger debian --version="{{.prefix}}{{.version}}" --date="{{.commit_date}}" dummy --force
+  version:release:
+    desc: Create a new release
+    cmds:
+      - ish: changelogger release new
+        ignore_error: yes
+      - changelogger debian dummy --force
+      - git add CHANGELOG.md debian/changelog
+      - git commit -m "Bump version to $(changelogger release last --version-only)" -m "$(changelogger release last)"
+      - 'git tag -a "$(changelogger release last --version-only)" -m "Version: $(changelogger release last)"'
+      - git push
+      - git push --tags
+    env:
+      CHANGELOGGER_VERSION_FORMAT: semver
+  coverage:
+    desc: Generate coverage report
+    cmds:
+      - |
+        echo "mode: atomic" > coverage/total
+        grep "^github.com" -h coverage/*.out | sort >> coverage/total
+        go tool cover -html=coverage/total -o coverage/coverage.html
+  clean:
+    desc: Clean ci-build
+    cmds:
+      - rm -r ci-build/ || true
+      - mkdir ci-build/

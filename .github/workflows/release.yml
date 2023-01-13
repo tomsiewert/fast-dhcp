@@ -1,0 +1,50 @@
+---
+name: Release fast-dhcp
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19.x
+
+      - name: Setup Task
+        uses: arduino/setup-task@v1
+
+      - name: Setup changelogger
+        run: curl -Ls https://git.io/changelogger.sh | sh
+
+      - name: Add changelogger bin to path
+        run: echo "$(pwd)/bin" >> $GITHUB_PATH
+
+      - name: Run build task
+        run: task bin
+
+      - name: Build Debian package
+        uses: jtdor/build-deb-action@v1
+        with:
+          buildpackage-opts: -us -uc
+
+      - name: Rename artifact
+        run: mv ci-build/fast-dhcp ci-build/fast-dhcp_amd64 && mv ../*.deb .
+
+      - name: Generate changelog
+        run: changelogger release last > ${{ github.workspace }}-CHANGELOG.txt
+
+      - name: Release to GitHub
+        uses: softprops/action-gh-release@v1
+        with:
+          body: ${{ github.workspace }}-CHANGELOG.txt
+          files: |
+            ci-build/fast-task*
+            *.deb
